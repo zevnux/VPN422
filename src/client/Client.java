@@ -29,7 +29,7 @@ public class Client {
 	
 	
 	/**
-	 * This is to be run after a connection to the server, as to allow the server to send messages to the client without interfering with input
+	 * This is to be run after a connection to the server, as to allow the client to receive messages from the server without interfering with input
 	 * Once the connection to the server is established, the server will send another connection request back
 	 */
 	public void listenToServer(){
@@ -39,7 +39,7 @@ public class Client {
 					while (true){
 						if (socket.getInputStream().available() != 0){
 							DataInputStream input = new DataInputStream(socket.getInputStream());
-							System.out.println("Message Received from Server: " + input.readUTF());
+							System.out.println("Server Says: " + input.readUTF());
 						}
 					}	
 				} catch (IOException e){

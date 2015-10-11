@@ -49,11 +49,12 @@ public class Execute {
 		c.connectToServer(hostname, port);
 		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		c.listenToServer();
+		reader.nextLine();
 		
 		
 		try {
 			while (true){
-				String message = reader.next();
+				String message = reader.nextLine();
 				DataOutputStream dos = new DataOutputStream(c.getSocket().getOutputStream());
 				dos.writeUTF(message);
 			}
@@ -84,7 +85,7 @@ public class Execute {
 			while(true){
 				if (s.getChannel().getInputStream().available() != 0){
 					DataInputStream input = new DataInputStream(s.getChannel().getInputStream());
-					System.out.println("Message Received from Client: " + input.readUTF());
+					System.out.println("Client Says: " + input.readUTF());
 				}
 			}
 		} catch (IOException e){

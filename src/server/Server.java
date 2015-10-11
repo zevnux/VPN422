@@ -44,7 +44,7 @@ public class Server {
 	}
 	
 	/**
-	 * This is to be run after a connection to the server, as to allow the server to send messages to the client without interfering with input
+	 * This is to be run after a connection to the client, as to allow the server to send messages to the client without interfering with input
 	 * Once the connection to the server is established, the server will send another connection request back
 	 */
 	public void writeToClient(){
@@ -53,7 +53,7 @@ public class Server {
 				Scanner reader = new Scanner(System.in);
 				try{
 					while (true){
-						String message = reader.next();
+						String message = reader.nextLine();
 						DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
 						dos.writeUTF(message);
 					}	
