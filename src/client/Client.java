@@ -1,5 +1,6 @@
 package client;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.net.Socket;
 import java.net.UnknownHostException;
@@ -18,7 +19,38 @@ public class Client {
 		}
 	}
 	
+	public Socket getSocket(){
+		return socket;
+	}
+	
 	public void sendMessage(String message){
+		
+	}
+	
+	
+	/**
+	 * This is to be run after a connection to the server, as to allow the server to send messages to the client without interfering with input
+	 * Once the connection to the server is established, the server will send another connection request back
+	 */
+	public void listenToServer(){
+		Runnable r = new Runnable(){
+			public void run () {
+				try{
+					while (true){
+						if (socket.getInputStream().available() != 0){
+							DataInputStream input = new DataInputStream(socket.getInputStream());
+							System.out.println("Message Received from Server: " + input.readUTF());
+						}
+					}	
+				} catch (IOException e){
+					e.printStackTrace();
+				}
+
+			}
+		};
+		
+		Thread listener = new Thread(r);
+		listener.start();
 		
 	}
 	
