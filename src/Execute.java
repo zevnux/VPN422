@@ -1,12 +1,9 @@
-package execute;
+
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.util.Scanner;
-
-import client.Client;
-import server.Server;
 
 public class Execute {
 	
