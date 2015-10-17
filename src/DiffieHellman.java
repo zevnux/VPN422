@@ -15,7 +15,7 @@ public class DiffieHellman {
 		return generate1024BitNum();
 	}
 
-	public BigInteger dhMod(BigInteger g, BigInteger n, BigInteger p) {
+	public static BigInteger dhMod(BigInteger g, BigInteger n, BigInteger p) {
 		return g.modPow(n, p);
 	}
 	

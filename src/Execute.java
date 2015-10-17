@@ -75,6 +75,7 @@ public class Execute {
 		System.out.println("The server is listening on the address " + s.getIp() + ":" + s.getPort());
 		System.out.println("Waiting for client...");
 		s.waitForClient();
+		s.establishSessionKey();
 		s.writeToClient();
 		
 		System.out.println("Communication channel established with " + s.getChannel().getInetAddress().getHostName());
