@@ -14,6 +14,8 @@ public class Client {
 	private BigInteger b;
 	private BigInteger p;
 	private BigInteger g;
+	private BigInteger SERVER_SECRET_KEY;
+	private BigInteger SESSION_KEY;
 	private BigInteger SECRET_KEY;
 	
 	public void connectToServer(String host, int port){
@@ -48,17 +50,17 @@ public class Client {
 		Runnable r = new Runnable(){
 			public void run () {
 				try{
-					while (true){
-						if (socket.getInputStream().available() != 0){
-							DataInputStream input = new DataInputStream(socket.getInputStream());
-							System.out.println(input.readUTF());
-							establishSessionKey(input.readUTF());
-						}
-					}	
+					if (socket.getInputStream().available() != 0){
+						DataInputStream input = new DataInputStream(socket.getInputStream());
+						System.out.println(input.readUTF());
+						establishSessionKey(input.readUTF());
+						DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
+						dos.writeUTF("Client secret key: " + SECRET_KEY.toString());
+						System.out.println("Session key: " + SESSION_KEY.toString());
+					}
 				} catch (IOException e){
 					e.printStackTrace();
 				}
-
 			}
 		};
 		Thread listener = new Thread(r);
@@ -71,12 +73,15 @@ public class Client {
 		try {
 			scrapeGValue(splitReadUTF);
 			scrapePValue(splitReadUTF);
+			scrapeServerDHValue(splitReadUTF);
 		} catch (Exception e) {
 			System.err.println("Bad G value: " + g.toString());
 			System.err.println("Bag P Value: " + p.toString());
 			e.printStackTrace();
 		}
 		genSecretKey();
+		initSecretKey();
+		genSessionKey();
 	}
 	
 	private void scrapeGValue(String[] readUTF) throws Exception {
@@ -97,12 +102,25 @@ public class Client {
 		p = new BigInteger(pValue);
 	}
 	
+	private void scrapeServerDHValue(String[] readUTF) throws Exception {
+		String pValue = readUTF[5]; //hardcode
+		if(!pValue.matches("[0-9]*")){
+			throw new Exception("unexpected P value");
+		}
+		
+		SERVER_SECRET_KEY = new BigInteger(pValue);
+	}
+	
 	private void genSecretKey() {
 		b = DiffieHellman.generateRandomSecretValue();
 	}
 	
 	private void initSecretKey() {
 		SECRET_KEY = DiffieHellman.dhMod(g, b, p);
+	}
+	
+	private void genSessionKey() {
+		SESSION_KEY = DiffieHellman.dhMod(SERVER_SECRET_KEY, b, p);
 	}
 	
 	/**

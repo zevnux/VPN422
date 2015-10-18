@@ -47,6 +47,7 @@ public class Execute {
 		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		c.listenToServer();
 		reader.nextLine();
+		c.establishDiffieHellman();
 		c.sendMessage();
 	}
 	

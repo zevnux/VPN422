@@ -57,7 +57,7 @@ public class Server {
 				try{
 					String message = "\nThe g value is: ~" + g.toString() + 
 							"~\nThe p value is: ~" + p.toString() + 
-							"~\nMy DH Mod is: ~" + SECRET_KEY.toString() + "~\n";
+							"~\nServer DH Mod is: ~" + SECRET_KEY.toString() + "~\n";
 					DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
 					dos.writeUTF(message);
 				} catch (IOException e){
