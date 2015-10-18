@@ -47,20 +47,7 @@ public class Execute {
 		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		c.listenToServer();
 		reader.nextLine();
-		
-		
-		try {
-			while (true){
-				String message = reader.nextLine();
-				DataOutputStream dos = new DataOutputStream(c.getSocket().getOutputStream());
-				dos.writeUTF(message);
-			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
-			e.printStackTrace();
-		}
-		
-		
+		c.sendMessage();
 	}
 	
 	private static void runServer(){
