@@ -3,35 +3,51 @@
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
+import java.io.UnsupportedEncodingException;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Scanner;
 
 public class Execute {
 	
 	public static void main(String[] args) {
 		Scanner reader = new Scanner(System.in);
-		System.out.println("Welcome to SDC Secure Messaging!");
-		System.out.println("Please choose 'client' or 'server' mode");
-		
-		// Make sure we get valid input to choose between a client or server
-		String mode = reader.next();
-		while (!mode.equalsIgnoreCase("client") && !mode.equalsIgnoreCase("server")){
-			System.out.println("Unable to understand input, please try again");
-			mode = reader.next();
+		String sharedSecretKey = "";
+		String hashedKey;
+		try {
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			System.out.println("Welcome to SDC Secure Messaging!");
+			System.out.println("Please enter the secret shared key");
+			sharedSecretKey = reader.nextLine();
+			byte[] hash = md.digest(sharedSecretKey.getBytes("UTF-8"));
+			hashedKey = new String (hash);
+			System.out.println("Please choose 'client' or 'server' mode");
+			// Make sure we get valid input to choose between a client or server
+			String mode = reader.next();
+			while (!mode.equalsIgnoreCase("client") && !mode.equalsIgnoreCase("server")){
+				System.out.println("Unable to understand input, please try again");
+				mode = reader.next();
+			}
+
+			// Once we have valid input, we'll look into the separate functions of running a client or server
+			if (mode.equalsIgnoreCase("client")){
+				System.out.println("Initializing a new client...");
+				runClient(hashedKey);	
+			} else if (mode.equalsIgnoreCase("server")){
+				System.out.println("Initializing a new server...");
+				runServer(hashedKey);	
+			}
+			
+			reader.close();
+		} catch (Exception e) {
+			System.out.println("OMG, NO MAS");
+			e.printStackTrace();
+			reader.close();
+			return;
 		}
-		
-		// Once we have valid input, we'll look into the separate functions of running a client or server
-		if (mode.equalsIgnoreCase("client")){
-			System.out.println("Initializing a new client...");
-			runClient();	
-		} else if (mode.equalsIgnoreCase("server")){
-			System.out.println("Initializing a new server...");
-			runServer();	
-		}
-		
-		reader.close();
 	}
 	
-	private static void runClient(){
+	private static void runClient(String hashedKey){
 		String hostname;
 		int port;
 				
@@ -42,16 +58,20 @@ public class Execute {
 		port = reader.nextInt();
 		
 		Client c = new Client();
+		c.setHashedKey(hashedKey);
 	
 		c.connectToServer(hostname, port);
 		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		c.listenToServer();
+		// For some reason, needs to clear next line before sending message after connection
 		reader.nextLine();
-		c.establishDiffieHellman();
+		c.sendInitialMessage();
+		c.getDiffieHellmanValues();
+		c.getChallengeFromServerAndSendResponse();
 		c.sendMessage();
 	}
 	
-	private static void runServer(){
+	private static void runServer(String hashedKey){
 		int port;
 		Scanner reader = new Scanner(System.in);
 		
@@ -59,11 +79,14 @@ public class Execute {
 		port = reader.nextInt();
 		
 		Server s = new Server();
+		s.setHashedKey(hashedKey);
+		
 		s.bindSocket(port);
 		System.out.println("The server is listening on the address " + s.getIp() + ":" + s.getPort());
 		System.out.println("Waiting for client...");
 		s.waitForClient();
-		s.establishSessionKey();
+		s.sendDiffieHellmanValues();
+		s.listenThenSendChallenge();
 		s.writeToClient();
 		
 		System.out.println("Communication channel established with " + s.getChannel().getInetAddress().getHostName());

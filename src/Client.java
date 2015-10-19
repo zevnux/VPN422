@@ -17,6 +17,7 @@ public class Client {
 	private BigInteger SERVER_SECRET_KEY;
 	private BigInteger SESSION_KEY;
 	private BigInteger SECRET_KEY;
+	private String SHARED_KEY;
 	
 	public void connectToServer(String host, int port){
 		try{
@@ -46,46 +47,54 @@ public class Client {
 		}
 	}
 	
-	public void establishDiffieHellman(){
-		Runnable r = new Runnable(){
-			public void run () {
-				try{
-					if (socket.getInputStream().available() != 0){
-						DataInputStream input = new DataInputStream(socket.getInputStream());
-						System.out.println(input.readUTF());
-						establishSessionKey(input.readUTF());
-						DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-						dos.writeUTF("Client secret key: " + SECRET_KEY.toString());
-						System.out.println("Session key: " + SESSION_KEY.toString());
-					}
-				} catch (IOException e){
-					e.printStackTrace();
-				}
+	/**
+	 * 	Listen to the server for the g and p values. Then send the client's Diffie-hellman value to the server.
+	 * 	Also save the session key. 	
+	 */
+	public void getDiffieHellmanValues(){
+		try{
+			if (socket.getInputStream().available() != 0){
+				DataInputStream input = new DataInputStream(socket.getInputStream());
+				System.out.println(input.readUTF());
+				scrapeGValue(input.readUTF());
+				scrapePValue(input.readUTF());
+				createSecretKey();
 			}
-		};
-		Thread listener = new Thread(r);
-		listener.start();
-	}
-	
-	private void establishSessionKey(String readUTF) {
-		System.out.println("Establishing session key...");
-		String[] splitReadUTF = readUTF.split("~");
-		try {
-			scrapeGValue(splitReadUTF);
-			scrapePValue(splitReadUTF);
-			scrapeServerDHValue(splitReadUTF);
+		} catch (IOException e){
+			e.printStackTrace();
 		} catch (Exception e) {
-			System.err.println("Bad G value: " + g.toString());
-			System.err.println("Bag P Value: " + p.toString());
 			e.printStackTrace();
 		}
-		genSecretKey();
-		initSecretKey();
-		genSessionKey();
 	}
 	
-	private void scrapeGValue(String[] readUTF) throws Exception {
-		String gValue = readUTF[1]; //hardcode
+	/**
+	 * Client will create the secret key. 
+	 */
+	private void createSecretKey() {
+		genSecretValue(); //little b
+		initSecretKey();
+		System.out.println("Client Secret key: ~" + SECRET_KEY.toString() + "~");
+	}
+	
+//	private void establishSessionKey(String readUTF) {
+//		System.out.println("Establishing session key...");
+//		String[] splitReadUTF = readUTF.split("~");
+//		try {
+//			scrapeGValue(splitReadUTF);
+//			scrapePValue(splitReadUTF);
+//			scrapeServerDHValue(splitReadUTF);
+//		} catch (Exception e) {
+//			System.err.println("Bad G value: " + g.toString());
+//			System.err.println("Bag P Value: " + p.toString());
+//			e.printStackTrace();
+//		}
+//		genSecretValue();
+//		initSecretKey();
+//		genSessionKey();
+//	}
+	
+	private void scrapeGValue(String readUTF) throws Exception {
+		String gValue = readUTF.split("~")[1]; //hardcode
 		if(!gValue.matches("[0-9]*")){
 			throw new Exception("unexpected G value");
 		}
@@ -93,8 +102,8 @@ public class Client {
 		g = new BigInteger(gValue);
 	}
 	
-	private void scrapePValue(String[] readUTF) throws Exception {
-		String pValue = readUTF[3]; //hardcode
+	private void scrapePValue(String readUTF) throws Exception {
+		String pValue = readUTF.split("~")[3]; //hardcode
 		if(!pValue.matches("[0-9]*")){
 			throw new Exception("unexpected P value");
 		}
@@ -102,8 +111,8 @@ public class Client {
 		p = new BigInteger(pValue);
 	}
 	
-	private void scrapeServerDHValue(String[] readUTF) throws Exception {
-		String pValue = readUTF[5]; //hardcode
+	private void scrapeServerDHValue(String readUTF) throws Exception {
+		String pValue = readUTF.split("~")[5]; //hardcode
 		if(!pValue.matches("[0-9]*")){
 			throw new Exception("unexpected P value");
 		}
@@ -111,7 +120,7 @@ public class Client {
 		SERVER_SECRET_KEY = new BigInteger(pValue);
 	}
 	
-	private void genSecretKey() {
+	private void genSecretValue() {
 		b = DiffieHellman.generateRandomSecretValue();
 	}
 	
@@ -149,4 +158,34 @@ public class Client {
 		
 	}
 	
+	/**
+	 * This will send a greeting message and nonce to the server upon initial connection
+	 */
+	public void sendInitialMessage(){
+		String greeting = "HiIAmTheRealClient";
+		BigInteger nonce = DiffieHellman.generateRandomSecretValue();
+		DataOutputStream dos;
+		try {
+			dos = new DataOutputStream(socket.getOutputStream());
+			dos.writeUTF(greeting + "~" + nonce.toString());
+		} catch (IOException e) {
+			// TODO Auto-generated catch block
+			e.printStackTrace();
+		}
+		
+	}
+
+	public void setHashedKey(String hashedKey) {
+		SHARED_KEY = hashedKey;
+	}
+	
+	public void getChallengeFromServerAndSendResponse(){
+		try{
+			while(socket.getInputStream().available() == 0);
+			DataInputStream input = new DataInputStream(socket.getInputStream());
+			System.out.println(input.readUTF());
+		} catch (Exception e){
+			e.printStackTrace();
+		} 
+	}
 }
