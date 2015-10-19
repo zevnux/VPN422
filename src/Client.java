@@ -6,10 +6,8 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.net.UnknownHostException;
-import java.nio.ByteBuffer;
 import java.util.Scanner;
 
-import org.apache.commons.io.IOUtils;
 
 public class Client {
 
