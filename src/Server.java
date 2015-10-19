@@ -17,7 +17,7 @@ public class Server {
 	private BigInteger SECRET_KEY;
 	private BigInteger CLIENT_SECRET_KEY;
 	private BigInteger SESSION_KEY;
-	private String SHARED_KEY;
+	private byte[] SHARED_KEY;
 	
 	public void bindSocket (int port) {
 		try{
@@ -183,7 +183,7 @@ public class Server {
 		}
 	}
 	
-	public void setHashedKey(String hashedKey) {
+	public void setHashedKey(byte[] hashedKey) {
 		SHARED_KEY = hashedKey;
 	}
 }

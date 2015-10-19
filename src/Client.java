@@ -17,7 +17,7 @@ public class Client {
 	private BigInteger SERVER_SECRET_KEY;
 	private BigInteger SESSION_KEY;
 	private BigInteger SECRET_KEY;
-	private String SHARED_KEY;
+	private byte[] SHARED_KEY;
 	
 	public void connectToServer(String host, int port){
 		try{
@@ -175,7 +175,7 @@ public class Client {
 		
 	}
 
-	public void setHashedKey(String hashedKey) {
+	public void setHashedKey(byte[] hashedKey) {
 		SHARED_KEY = hashedKey;
 	}
 	

@@ -4,8 +4,10 @@ import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.UnsupportedEncodingException;
+import java.lang.reflect.Array;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
+import java.util.Arrays;
 import java.util.Scanner;
 
 public class Execute {
@@ -13,14 +15,14 @@ public class Execute {
 	public static void main(String[] args) {
 		Scanner reader = new Scanner(System.in);
 		String sharedSecretKey = "";
-		String hashedKey;
+		byte[] hashedKey;
 		try {
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			System.out.println("Welcome to SDC Secure Messaging!");
 			System.out.println("Please enter the secret shared key");
 			sharedSecretKey = reader.nextLine();
-			byte[] hash = md.digest(sharedSecretKey.getBytes("UTF-8"));
-			hashedKey = new String (hash);
+			byte[] hash = md.digest(sharedSecretKey.getBytes("UTF-8"));	
+			hashedKey = Arrays.copyOf(hash, 16);
 			System.out.println("Please choose 'client' or 'server' mode");
 			// Make sure we get valid input to choose between a client or server
 			String mode = reader.next();
@@ -47,7 +49,7 @@ public class Execute {
 		}
 	}
 	
-	private static void runClient(String hashedKey){
+	private static void runClient(byte[] hashedKey){
 		String hostname;
 		int port;
 				
@@ -71,7 +73,7 @@ public class Execute {
 		c.sendMessage();
 	}
 	
-	private static void runServer(String hashedKey){
+	private static void runServer(byte[] hashedKey){
 		int port;
 		Scanner reader = new Scanner(System.in);
 		
