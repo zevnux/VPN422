@@ -55,9 +55,10 @@ public class Client {
 		try{
 			if (socket.getInputStream().available() != 0){
 				DataInputStream input = new DataInputStream(socket.getInputStream());
-				System.out.println(input.readUTF());
-				scrapeGValue(input.readUTF());
-				scrapePValue(input.readUTF());
+				String serverMessage = input.readUTF();
+				System.out.println(serverMessage);
+				scrapeGValue(serverMessage);
+				scrapePValue(serverMessage);
 				createSecretKey();
 			}
 		} catch (IOException e){
@@ -183,7 +184,8 @@ public class Client {
 		try{
 			while(socket.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
-			System.out.println(input.readUTF());
+			String serverMessage = input.readUTF();
+			System.out.println(serverMessage);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
