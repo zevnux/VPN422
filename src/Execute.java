@@ -86,7 +86,7 @@ public class Execute {
 		s.sendDiffieHellmanValues();
 		s.listenThenSendChallenge();
 		s.listenForResponseFromClient();
-		System.out.println("Communication channel established with " + s.getChannel().getInetAddress().getHostName());
+		System.out.println("Communication channel established with " + s.getChannel().getLocalSocketAddress().toString());
 		s.writeToClient();
 		s.listenForMessage();		
 	}
