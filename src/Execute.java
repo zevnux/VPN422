@@ -59,12 +59,12 @@ public class Execute {
 		c.setHashedKey(hashedKey);
 	
 		c.connectToServer(hostname, port);
-		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		// For some reason, needs to clear next line before sending message after connection
 		reader.nextLine();
 		c.sendInitialMessage();
 		c.getDiffieHellmanValues();
 		c.getChallengeFromServerAndSendResponse();
+		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 		c.listenToServer();
 		c.sendMessage();
 	}
@@ -85,23 +85,10 @@ public class Execute {
 		s.waitForClient();
 		s.sendDiffieHellmanValues();
 		s.listenThenSendChallenge();
-		s.writeToClient();
-		
+		s.listenForResponseFromClient();
 		System.out.println("Communication channel established with " + s.getChannel().getInetAddress().getHostName());
-		try{
-			while(true){
-				if (s.getChannel().getInputStream().available() != 0){
-					DataInputStream input = new DataInputStream(s.getChannel().getInputStream());
-					System.out.println("Client Says: " + input.readUTF());
-				}
-			}
-		} catch (IOException e){
-			e.printStackTrace();
-		}
-			
-		
-		
-		
+		s.writeToClient();
+		s.listenForMessage();		
 	}
 	
 }

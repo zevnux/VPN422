@@ -8,6 +8,9 @@ import java.net.Socket;
 import java.net.UnknownHostException;
 import java.util.Scanner;
 
+import javax.crypto.BadPaddingException;
+import javax.crypto.IllegalBlockSizeException;
+
 
 public class Client {
 
@@ -18,6 +21,7 @@ public class Client {
 	private BigInteger SERVER_SECRET_KEY;
 	private BigInteger SESSION_KEY;
 	private BigInteger SECRET_KEY;
+	private BigInteger nonce; 
 	private byte[] SHARED_KEY;
 	
 	public void connectToServer(String host, int port){
@@ -39,11 +43,14 @@ public class Client {
 		try {
 			while (true){
 				String message = reader.nextLine();
-				DataOutputStream dos = new DataOutputStream(socket.getOutputStream());
-				dos.writeUTF(message);
+				byte[] encryptedMessage;
+				encryptedMessage = AES.encrypt(message, SHARED_KEY);				
+				System.out.println("The encrypted message being sent to the server is: ");
+				System.out.println(bytesToHex(encryptedMessage));
+				DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+				output.write(encryptedMessage);
 			}
-		} catch (IOException e) {
-			// TODO Auto-generated catch block
+		} catch (Exception e) {
 			e.printStackTrace();
 		}
 	}
@@ -113,14 +120,14 @@ public class Client {
 		p = new BigInteger(pValue);
 	}
 	
-	private void scrapeServerDHValue(String readUTF) throws Exception {
-		String pValue = readUTF.split("~")[5]; //hardcode
-		if(!pValue.matches("[0-9]*")){
-			throw new Exception("unexpected P value");
-		}
-		
-		SERVER_SECRET_KEY = new BigInteger(pValue);
-	}
+//	private void scrapeServerDHValue(String readUTF) throws Exception {
+//		String pValue = readUTF.split("~")[5]; //hardcode
+//		if(!pValue.matches("[0-9]*")){
+//			throw new Exception("unexpected P value");
+//		}
+//		
+//		SERVER_SECRET_KEY = new BigInteger(pValue);
+//	}
 	
 	private void genSecretValue() {
 		b = DiffieHellman.generateRandomSecretValue();
@@ -144,11 +151,18 @@ public class Client {
 				try{
 					while (true){
 						if (socket.getInputStream().available() != 0){
-							DataInputStream input = new DataInputStream(socket.getInputStream());
-							System.out.println("Server Says: " + input.readUTF());
+							String plainText = "";
+							DataInputStream dis = new DataInputStream(socket.getInputStream());
+							byte[] serverMessage = new byte[socket.getInputStream().available()];
+							dis.readFully(serverMessage);
+							System.out.println("Received the following encrypted message from server: ");
+							System.out.println(bytesToHex(serverMessage));
+							plainText = AES.decrypt(serverMessage, SHARED_KEY);
+							System.out.println("Plaintext is: ");
+							System.out.println(plainText);
 						}
 					}	
-				} catch (IOException e){
+				} catch (Exception e){
 					e.printStackTrace();
 				}
 
@@ -165,7 +179,7 @@ public class Client {
 	 */
 	public void sendInitialMessage(){
 		String greeting = "HiIAmTheRealClient";
-		BigInteger nonce = DiffieHellman.generateRandomSecretValue();
+		nonce = DiffieHellman.generateRandomSecretValue();
 		DataOutputStream dos;
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
@@ -185,18 +199,70 @@ public class Client {
 	public void getChallengeFromServerAndSendResponse(){
 		// Get the encrypted text and decrypt it
 		String plainText = "";
+		String serverNonce = "";
 		try{
+			// Get the nonce first
 			while(socket.getInputStream().available() == 0);
-			byte[] serverMessage = new byte[socket.getInputStream().available()];
 			DataInputStream input = new DataInputStream(socket.getInputStream());
-			input.readFully(serverMessage);
-			plainText = AES.decrypt(serverMessage, SHARED_KEY);
+			serverNonce = input.readUTF();
+			// Then get the encrypted text
+			while(socket.getInputStream().available() == 0);
+			DataInputStream dis = new DataInputStream(socket.getInputStream());
+			byte[] serverMessage = new byte[socket.getInputStream().available()];
+			
+			dis.readFully(serverMessage);
+			try{
+				plainText = AES.decrypt(serverMessage, SHARED_KEY);
+			} catch (IllegalBlockSizeException e){
+				System.out.println("You had a different key from the server... failed to decrypt the message");
+				return;
+			} catch (BadPaddingException f){
+				System.out.println("You had a different key from the server... failed to decrypt the message");
+				return;
+			}
 			System.out.println("Plaintext is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
 		
-		String receivedNonce = plainText.split("~")[1];
+		String myNonceCheck = plainText.split("~")[1];
+		SERVER_SECRET_KEY = new BigInteger(plainText.split("~")[2]);
+		if (myNonceCheck.equals(nonce.toString())){
+			System.out.println("Verified server sent back correct encrypted nonce, successfully authenticated server");
+			// If the server authenticated okay, let's let the server authenticate us by sending his nonce back with encryption
+			String messageEncryptToServer = "IAmClient~" + serverNonce + "~" + SECRET_KEY.toString();
+			System.out.println("My message to the server is: " + messageEncryptToServer);
+			byte[] encryptedMessage;
+			try {
+				encryptedMessage = AES.encrypt(messageEncryptToServer, SHARED_KEY);
+				DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+				output.write(encryptedMessage);
+			} catch (Exception e) {
+				e.printStackTrace();
+				return;
+			}
+			
+			genSessionKey();
+			System.out.println("The shared session key is: " + SESSION_KEY.toString());
+			
+			
+		} else {
+			// If the server is fake, get out and close the socket
+			System.out.println("That server is a fake! GET OUT!!!!!");
+			try {
+				socket.close();
+			} catch (IOException e) {
+				e.printStackTrace();
+			}
+		}
+	}
+	
+	public static String bytesToHex(byte[] bytes) {
+	    StringBuilder sb = new StringBuilder();
+	    for (byte b : bytes) {
+	        sb.append(String.format("%02X", b));
+	    }
+	    return sb.toString();
 	}
 	
 }
