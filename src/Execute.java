@@ -60,12 +60,12 @@ public class Execute {
 	
 		c.connectToServer(hostname, port);
 		System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
-		c.listenToServer();
 		// For some reason, needs to clear next line before sending message after connection
 		reader.nextLine();
 		c.sendInitialMessage();
 		c.getDiffieHellmanValues();
 		c.getChallengeFromServerAndSendResponse();
+		c.listenToServer();
 		c.sendMessage();
 	}
 	

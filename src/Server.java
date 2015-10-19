@@ -177,6 +177,14 @@ public class Server {
 			dos.write(encryptedMessage);
 			System.out.println("The encrypted message is: " + encryptedMessage);
 			
+			try {
+				String decrypted  = AES.decrypt(encryptedMessage, SHARED_KEY);
+				System.out.println(decrypted);
+			} catch (Exception e) {
+				// TODO Auto-generated catch block
+				e.printStackTrace();
+			}
+			
 		} catch (IOException e) {
 			e.printStackTrace();
 		}

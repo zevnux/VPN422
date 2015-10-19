@@ -9,6 +9,8 @@ import java.net.UnknownHostException;
 import java.nio.ByteBuffer;
 import java.util.Scanner;
 
+import org.apache.commons.io.IOUtils;
+
 public class Client {
 
 	private Socket socket;
@@ -185,10 +187,9 @@ public class Client {
 	public void getChallengeFromServerAndSendResponse(){
 		try{
 			while(socket.getInputStream().available() == 0);
+			byte[] serverMessage = new byte[socket.getInputStream().available()];
 			DataInputStream input = new DataInputStream(socket.getInputStream());
-			byte[] serverMessage = new byte[2048];
 			input.readFully(serverMessage);
-			System.out.println("Encrypted message from server is: " + serverMessage);
 			String plaintext = AES.decrypt(serverMessage, SHARED_KEY);
 			System.out.println("Plaintext is: " + plaintext);
 		} catch (Exception e){
