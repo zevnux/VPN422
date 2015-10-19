@@ -6,6 +6,7 @@ import java.io.IOException;
 import java.math.BigInteger;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.nio.ByteBuffer;
 import java.util.Scanner;
 
 public class Client {
@@ -169,6 +170,7 @@ public class Client {
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
 			dos.writeUTF(greeting + "~" + nonce.toString());
+			System.out.println("My nonce is: " + nonce.toString());
 		} catch (IOException e) {
 			// TODO Auto-generated catch block
 			e.printStackTrace();
@@ -184,10 +186,14 @@ public class Client {
 		try{
 			while(socket.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
-			String serverMessage = input.readUTF();
-			System.out.println(serverMessage);
+			byte[] serverMessage = new byte[2048];
+			input.readFully(serverMessage);
+			System.out.println("Encrypted message from server is: " + serverMessage);
+			String plaintext = AES.decrypt(serverMessage, SHARED_KEY);
+			System.out.println("Plaintext is: " + plaintext);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
 	}
+	
 }

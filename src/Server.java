@@ -159,24 +159,23 @@ public class Server {
 			
 			System.out.println(message);
 			clientNonce = message.split("~")[1];
-			System.out.println(clientNonce);
+			System.out.println("The client nonce is: " + clientNonce);
 			
 			// Send back server nonce in clear
 			// Encrypt signature + clientNonce + powmodServer with SharedSecretKey
 			String messageEncryptToClient = "IamServer~" + clientNonce + "~" + SECRET_KEY.toString();
-			String encryptedMessage;
+			System.out.println("My message to the client is: " + messageEncryptToClient);
+			byte[] encryptedMessage;
 			try {
-				System.out.println("got here");
-				encryptedMessage = new String (AES.encrypt(messageEncryptToClient, SHARED_KEY));
-				System.out.println(encryptedMessage);
+				encryptedMessage = AES.encrypt(messageEncryptToClient, SHARED_KEY);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return;
 			}
 			
 			DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
-			dos.writeUTF(nonce + "~" + encryptedMessage);
-			System.out.println(encryptedMessage);
+			dos.write(encryptedMessage);
+			System.out.println("The encrypted message is: " + encryptedMessage);
 			
 		} catch (IOException e) {
 			e.printStackTrace();
