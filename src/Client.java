@@ -185,16 +185,20 @@ public class Client {
 	}
 	
 	public void getChallengeFromServerAndSendResponse(){
+		// Get the encrypted text and decrypt it
+		String plainText = "";
 		try{
 			while(socket.getInputStream().available() == 0);
 			byte[] serverMessage = new byte[socket.getInputStream().available()];
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			input.readFully(serverMessage);
-			String plaintext = AES.decrypt(serverMessage, SHARED_KEY);
-			System.out.println("Plaintext is: " + plaintext);
+			plainText = AES.decrypt(serverMessage, SHARED_KEY);
+			System.out.println("Plaintext is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
+		
+		String receivedNonce = plainText.split("~")[1];
 	}
 	
 }
