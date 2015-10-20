@@ -3,23 +3,35 @@ import java.util.Random;
 
 public class DiffieHellman {
 
+	/**
+	 * 
+	 * @return a BigInteger value of size 1024 bits
+	 */
 	public static BigInteger generateRandomSecretValue() {
 		return generate1024BitNum();
 	}
 	
+	/**
+	 * 
+	 * @return a prime BigInteger value of size 1024 bits
+	 */
 	public static BigInteger generateBigIntPrime() {
 		return new BigInteger(1024, Integer.MAX_VALUE, new Random()).abs();
 	}
 	
+	/**
+	 * 
+	 * @return a BigInteger value of size 1024 bits
+	 */
 	public static BigInteger generateBigIntG() {
 		return generate1024BitNum();
 	}
 
+	/**
+	 * 
+	 * @return the result of g^n mod p
+	 */
 	public static BigInteger dhMod(BigInteger g, BigInteger n, BigInteger p) {
-		return g.modPow(n, p);
-	}
-	
-	public static BigInteger genDHSessionKey(BigInteger g, BigInteger n, BigInteger p) {
 		return g.modPow(n, p);
 	}
 	
