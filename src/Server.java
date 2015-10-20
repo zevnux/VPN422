@@ -176,6 +176,10 @@ public class Server {
 //		CLIENT_SECRET_KEY = new BigInteger(clientKey);
 //	}
 	
+	/**
+	 * generate the diffie-hellman session key
+	 * @return
+	 */
 	private void genSessionKey() {
 		try{
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
@@ -187,18 +191,30 @@ public class Server {
 		}
 	}
 	
+	/**
+	 * calculate the diffie-hellman secret key for the server
+	 */
 	private void initSecretKey() {
 		SECRET_KEY = DiffieHellman.dhMod(g, a, p);
 	}
 	
+	/**
+	 * generate a diffie-hellman secret value for the server
+	 */
 	private void genSecretKey() {
 		a = DiffieHellman.generateRandomSecretValue();
 	}
 	
+	/**
+	 * generate a diffie-hellman prime number for the session
+	 */
 	private void genP() {
 		p = DiffieHellman.generateBigIntPrime();
 	}
 	
+	/**
+	 * generate a diffie-hellman G value for the session
+	 */
 	private void genG() {
 		g = DiffieHellman.generateBigIntG();
 	}

@@ -151,14 +151,23 @@ public class Client {
 //		SERVER_SECRET_KEY = new BigInteger(pValue);
 //	}
 	
+	/**
+	 * generate a diffie-hellman secret value to be used for the client
+	 */
 	private void genSecretValue() {
 		b = DiffieHellman.generateRandomSecretValue();
 	}
-	
+
+	/**
+	 * generate the diffie-hellman secret key for the client
+	 */
 	private void initSecretKey() {
 		SECRET_KEY = DiffieHellman.dhMod(g, b, p);
 	}
 	
+	/**
+	 * generate the diffie-hellman session key
+	 */
 	private void genSessionKey() {
 		try{
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
