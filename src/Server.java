@@ -8,7 +8,12 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.MessageDigest;
+import java.util.Arrays;
 import java.util.Scanner;
+
+import javax.crypto.Mac;
+import javax.crypto.spec.SecretKeySpec;
 
 public class Server {
 	private ServerSocket socket;
@@ -18,8 +23,10 @@ public class Server {
 	private BigInteger g;
 	private BigInteger SECRET_KEY;
 	private BigInteger CLIENT_SECRET_KEY;
-	private BigInteger SESSION_KEY;
+	private byte[] SESSION_KEY;
 	private byte[] SHARED_KEY;
+	private byte[] INTEGRITY_KEY;
+	private String IV;
 	private BigInteger nonce;
 	
 	public void bindSocket (int port) {
@@ -74,9 +81,20 @@ public class Server {
 					dis.readFully(clientMessage);
 					System.out.println("Received the following encrypted message from server: ");
 					System.out.println(bytesToHex(clientMessage));
-					plainText = AES.decrypt(clientMessage, SHARED_KEY);
+					// Separate the encrypted message from the mac
+					byte[] message = Arrays.copyOf(clientMessage, clientMessage.length-32);	
+					plainText = AES.decrypt(message, SESSION_KEY, IV);
 					System.out.println("Plaintext is: ");
 					System.out.println(plainText);
+					Mac mac = Mac.getInstance("HmacSHA256");
+			        mac.init(new SecretKeySpec(INTEGRITY_KEY, "HmacSHA256"));
+			        byte[] calculatedMac = mac.doFinal(Arrays.copyOfRange(message, message.length-16, message.length));
+					byte[] macFromClient = Arrays.copyOfRange(clientMessage, clientMessage.length-32, clientMessage.length);
+					if (Arrays.equals(macFromClient, calculatedMac)){
+						System.out.println("Successfully verified the integrity of the message");
+					} else {
+						System.out.println("Message could not ber verified!!!!");
+					}
 				}
 			}	
 		} catch (Exception e){
@@ -87,8 +105,10 @@ public class Server {
 	
 	public void sendDiffieHellmanValues(){
 		try{
+			computeIV();
 			String message = "\nThe g value is: ~" + g.toString() + 
-					"~\nThe p value is: ~" + p.toString() + "~\n";
+					"~\nThe p value is: ~" + p.toString() + 
+					"~\n The IV is: ~" + IV + "~\n";
 			DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
 			dos.writeUTF(message);
 		} catch (IOException e){
@@ -124,11 +144,16 @@ public class Server {
 					while (true){
 						String message = reader.nextLine();
 						byte[] encryptedMessage;
-						encryptedMessage = AES.encrypt(message, SHARED_KEY);				
+						encryptedMessage = AES.encrypt(message, SESSION_KEY, IV);				
 						System.out.println("The encrypted message being sent to the client is: ");
 						System.out.println(bytesToHex(encryptedMessage));
 						DataOutputStream output = new DataOutputStream(channel.getOutputStream());
-						output.write(encryptedMessage);
+						
+				        // Send the MAC after we send the message
+				        Mac mac = Mac.getInstance("HmacSHA256");
+				        mac.init(new SecretKeySpec(INTEGRITY_KEY, "HmacSHA256"));
+				        output.write(encryptedMessage);
+				        output.write(mac.doFinal(Arrays.copyOfRange(encryptedMessage, encryptedMessage.length-16, encryptedMessage.length)));
 					}	
 				} catch (Exception e){
 					e.printStackTrace();
@@ -151,9 +176,15 @@ public class Server {
 //		CLIENT_SECRET_KEY = new BigInteger(clientKey);
 //	}
 	
-	private boolean genSessionKey() {
-		SESSION_KEY = DiffieHellman.dhMod(CLIENT_SECRET_KEY, a, p);
-		return true;
+	private void genSessionKey() {
+		try{
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			String sessionString = DiffieHellman.dhMod(CLIENT_SECRET_KEY, a, p).toString();
+			byte[] hash = md.digest(sessionString.getBytes("UTF-8"));	
+			SESSION_KEY = Arrays.copyOf(hash, 16);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
 	}
 	
 	private void initSecretKey() {
@@ -194,7 +225,7 @@ public class Server {
 			System.out.println("My message to the client is: " + messageEncryptToClient);
 			byte[] encryptedMessage;
 			try {
-				encryptedMessage = AES.encrypt(messageEncryptToClient, SHARED_KEY);
+				encryptedMessage = AES.encrypt(messageEncryptToClient, SHARED_KEY, IV);
 			} catch (Exception e) {
 				e.printStackTrace();
 				return;
@@ -229,7 +260,7 @@ public class Server {
 			DataInputStream input = new DataInputStream(channel.getInputStream());
 			byte[] serverMessage = new byte[channel.getInputStream().available()];
 			input.readFully(serverMessage);
-			plainText = AES.decrypt(serverMessage, SHARED_KEY);
+			plainText = AES.decrypt(serverMessage, SHARED_KEY, IV);
 			System.out.println("Plaintext is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
@@ -240,7 +271,7 @@ public class Server {
 			System.out.println("Verified client sent back correct encrypted nonce, successfully authenticated client");
 			// If the client authenticated okay, we can start sending messages back to each other using the session Key!
 			genSessionKey();
-			System.out.println("The shared session key is: " + SESSION_KEY.toString());
+			System.out.println("The shared session key is: " + DiffieHellman.dhMod(CLIENT_SECRET_KEY, a, p).toString());
 			
 		} else {
 			// If the server is fake, get out and close the socket
@@ -256,6 +287,7 @@ public class Server {
 	
 	public void setHashedKey(byte[] hashedKey) {
 		SHARED_KEY = hashedKey;
+		computeIntegrityKey();
 	}
 	
 	public static String bytesToHex(byte[] bytes) {
@@ -265,4 +297,24 @@ public class Server {
 	    }
 	    return sb.toString();
 	}
+	
+	/**
+	 * Compute the hash of the hash of the shared secrety key, we'll use this as the
+	 * integrity key since it's already a known shared value
+	 */
+	private void computeIntegrityKey(){
+		try{
+			MessageDigest md = MessageDigest.getInstance("SHA-256");
+			byte[] hash = md.digest(SHARED_KEY);
+			INTEGRITY_KEY = Arrays.copyOf(hash, 16);
+		} catch (Exception e){
+			e.printStackTrace();
+		}
+	}
+	
+	  private void computeIV(){
+		 String randomNum = DiffieHellman.generateRandomSecretValue().toString();
+		 String vector = randomNum.substring(0, 16);
+		 IV = vector;
+	  }
 }

@@ -1,7 +1,4 @@
 
-
-import java.io.DataInputStream;
-import java.io.IOException;
 import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Scanner;
