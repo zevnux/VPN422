@@ -80,9 +80,9 @@ public class Server {
 					byte[] clientMessage = new byte[channel.getInputStream().available()];
 					dis.readFully(clientMessage);
 					System.out.println("Received the following encrypted message from server: ");
-					System.out.println(bytesToHex(clientMessage));
 					// Separate the encrypted message from the mac
 					byte[] message = Arrays.copyOf(clientMessage, clientMessage.length-32);	
+					System.out.println(bytesToHex(message));
 					plainText = AES.decrypt(message, SESSION_KEY, IV);
 					System.out.println("Plaintext is: ");
 					System.out.println(plainText);
@@ -90,6 +90,8 @@ public class Server {
 			        mac.init(new SecretKeySpec(INTEGRITY_KEY, "HmacSHA256"));
 			        byte[] calculatedMac = mac.doFinal(Arrays.copyOfRange(message, message.length-16, message.length));
 					byte[] macFromClient = Arrays.copyOfRange(clientMessage, clientMessage.length-32, clientMessage.length);
+					System.out.println("The mac received is: \n" + bytesToHex(macFromClient));
+					System.out.println("The mac calculated from the message is: \n" + bytesToHex(calculatedMac));
 					if (Arrays.equals(macFromClient, calculatedMac)){
 						System.out.println("Successfully verified the integrity of the message");
 					} else {
@@ -152,6 +154,9 @@ public class Server {
 				        // Send the MAC after we send the message
 				        Mac mac = Mac.getInstance("HmacSHA256");
 				        mac.init(new SecretKeySpec(INTEGRITY_KEY, "HmacSHA256"));
+				        byte[] macToClient = mac.doFinal(Arrays.copyOfRange(encryptedMessage, encryptedMessage.length-16, encryptedMessage.length));
+				        System.out.println("The mac being sent to the client is: ");
+						System.out.println(bytesToHex(macToClient));
 				        output.write(encryptedMessage);
 				        output.write(mac.doFinal(Arrays.copyOfRange(encryptedMessage, encryptedMessage.length-16, encryptedMessage.length)));
 					}	
