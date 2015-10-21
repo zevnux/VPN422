@@ -29,7 +29,6 @@ public class Server {
 	private String IV;
 	private BigInteger nonce;
 	private String myPhrase;
-	private Scanner globalScanner = new Scanner(System.in);
 	
 	/**
 	 * Bind the socket for communication
@@ -168,12 +167,12 @@ public class Server {
 				} catch (Exception e){
 					e.printStackTrace();
 				}
+				reader.close();
 			}
 		};
 		
 		Thread writer = new Thread(r);
-		writer.start();
-		
+		writer.start();	
 	}
 	
 	/**

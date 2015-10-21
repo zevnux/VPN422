@@ -14,7 +14,7 @@ public class Execute {
 			// Begin initial questions for the user
 			MessageDigest md = MessageDigest.getInstance("SHA-256");
 			System.out.println("Welcome to SDC Secure Messaging!");
-			System.out.println("Please enter the secret shared key");
+			System.out.println("Please enter the secret shared key you wish to use");
 			sharedSecretKey = reader.nextLine();
 			byte[] hash = md.digest(sharedSecretKey.getBytes("UTF-8"));	
 			hashedKey = Arrays.copyOf(hash, 16);
@@ -61,12 +61,12 @@ public class Execute {
 	
 		c.connectToServer(hostname, port);
 		// For some reason, needs to clear next line before sending message after connection
+		
 		reader.nextLine();
 		c.getDiffieHellmanValues();
 		c.sendInitialMessage();
 		connected = c.getChallengeFromServerAndSendResponse();
 		if (connected){
-			
 			System.out.println("Communication channel established with " + c.getSocket().getRemoteSocketAddress().toString());
 			c.listenToServer();
 			c.sendMessage();

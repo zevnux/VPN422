@@ -10,8 +10,6 @@ import java.security.MessageDigest;
 import java.util.Arrays;
 import java.util.Scanner;
 
-import javax.crypto.BadPaddingException;
-import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.Mac;
 import javax.crypto.SecretKey;
 import javax.crypto.spec.SecretKeySpec;
@@ -31,7 +29,6 @@ public class Client {
 	private byte[] INTEGRITY_KEY;
 	private String IV;
 	private Object myPhrase;
-	private Scanner globalScanner = new Scanner(System.in);
 	
 	public void connectToServer(String host, int port){
 		try{
@@ -76,6 +73,8 @@ public class Client {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		
+		reader.close();
 	}
 	
 	/**
