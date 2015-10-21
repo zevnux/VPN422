@@ -30,6 +30,8 @@ public class Client {
 	private byte[] SHARED_KEY;
 	private byte[] INTEGRITY_KEY;
 	private String IV;
+	private Object myPhrase;
+	private Scanner globalScanner = new Scanner(System.in);
 	
 	public void connectToServer(String host, int port){
 		try{
@@ -45,16 +47,23 @@ public class Client {
 		return socket;
 	}
 	
+	/**
+	 * This method is used as the main way the client sends messages
+	 * to the server once the authentication is complete
+	 */
 	public void sendMessage(){
 		Scanner reader = new Scanner(System.in);
 		try {
+			// Loop indefinitely until the client is closed
 			while (true){
+				// Read the user input, then encrypt it
 				String message = reader.nextLine();
 				byte[] encryptedMessage;
 				encryptedMessage = AES.encrypt(message, SESSION_KEY, IV);				
 				System.out.println("The encrypted message being sent to the server is: ");
 				System.out.println(bytesToHex(encryptedMessage));
 				DataOutputStream output = new DataOutputStream(socket.getOutputStream());
+				
 				 // Send the MAC after we send the message
 		        Mac mac = Mac.getInstance("HmacSHA256");
 		        mac.init(new SecretKeySpec(INTEGRITY_KEY, "HmacSHA256"));
@@ -75,15 +84,14 @@ public class Client {
 	 */
 	public void getDiffieHellmanValues(){
 		try{
-			if (socket.getInputStream().available() != 0){
-				DataInputStream input = new DataInputStream(socket.getInputStream());
-				String serverMessage = input.readUTF();
-				System.out.println(serverMessage);
-				scrapeGValue(serverMessage);
-				scrapePValue(serverMessage);
-				scrapeIV(serverMessage);
-				createSecretKey();
-			}
+			while (socket.getInputStream().available() == 0);
+			DataInputStream input = new DataInputStream(socket.getInputStream());
+			String serverMessage = input.readUTF();
+			System.out.println(serverMessage);
+			scrapeGValue(serverMessage);
+			scrapePValue(serverMessage);
+			scrapeIV(serverMessage);
+			createSecretKey();
 		} catch (IOException e){
 			e.printStackTrace();
 		} catch (Exception e) {
@@ -91,10 +99,15 @@ public class Client {
 		}
 	}
 	
+	/**
+	 * Scrape the IV from the message from the server
+	 * @param readUTF
+	 * @throws Exception
+	 */
 	private void scrapeIV(String readUTF) throws Exception {
 		String IVValue = readUTF.split("~")[5]; //hardcode
 		if(!IVValue.matches("[0-9]*")){
-			throw new Exception("unexpected G value");
+			throw new Exception("unexpected IV value");
 		}
 		
 		IV = new BigInteger(IVValue).toString();
@@ -109,23 +122,6 @@ public class Client {
 		initSecretKey();
 		System.out.println("Client Secret key: ~" + SECRET_KEY.toString() + "~");
 	}
-	
-//	private void establishSessionKey(String readUTF) {
-//		System.out.println("Establishing session key...");
-//		String[] splitReadUTF = readUTF.split("~");
-//		try {
-//			scrapeGValue(splitReadUTF);
-//			scrapePValue(splitReadUTF);
-//			scrapeServerDHValue(splitReadUTF);
-//		} catch (Exception e) {
-//			System.err.println("Bad G value: " + g.toString());
-//			System.err.println("Bag P Value: " + p.toString());
-//			e.printStackTrace();
-//		}
-//		genSecretValue();
-//		initSecretKey();
-//		genSessionKey();
-//	}
 	
 	private void scrapeGValue(String readUTF) throws Exception {
 		String gValue = readUTF.split("~")[1]; //hardcode
@@ -145,14 +141,6 @@ public class Client {
 		p = new BigInteger(pValue);
 	}
 	
-//	private void scrapeServerDHValue(String readUTF) throws Exception {
-//		String pValue = readUTF.split("~")[5]; //hardcode
-//		if(!pValue.matches("[0-9]*")){
-//			throw new Exception("unexpected P value");
-//		}
-//		
-//		SERVER_SECRET_KEY = new BigInteger(pValue);
-//	}
 	
 	/**
 	 * generate a diffie-hellman secret value to be used for the client
@@ -192,18 +180,20 @@ public class Client {
 				try{
 					while (true){
 						if (socket.getInputStream().available() != 0){
-							
+							// Read in the message from the server
 							String plainText = "";
 							DataInputStream dis = new DataInputStream(socket.getInputStream());
 							byte[] serverMessage = new byte[socket.getInputStream().available()];
 							dis.readFully(serverMessage);
 							System.out.println("Received the following encrypted message from server: ");
+							
 							// Separate the encrypted message and the mac
 							byte[] message = Arrays.copyOf(serverMessage, serverMessage.length-32);	
 							System.out.println(bytesToHex(message));
 							plainText = AES.decrypt(message, SESSION_KEY, IV);
 							System.out.println("Plaintext is: ");
 							System.out.println(plainText);
+							
 							// Confirm the message was received from the correct party
 							System.out.println("Verifying integrity of message");
 							Mac mac = Mac.getInstance("HmacSHA256");
@@ -218,7 +208,6 @@ public class Client {
 							} else {
 								System.out.println("Message could not ber verified!!!!");
 							}
-							
 						}
 					}	
 				} catch (Exception e){
@@ -244,8 +233,8 @@ public class Client {
 			dos = new DataOutputStream(socket.getOutputStream());
 			dos.writeUTF(greeting + "~" + nonce.toString());
 			System.out.println("My nonce is: " + nonce.toString());
+			System.out.println("Waiting for server's response...");
 		} catch (IOException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 		
@@ -256,7 +245,11 @@ public class Client {
 		computeIntegrityKey();
 	}
 	
-	public void getChallengeFromServerAndSendResponse(){
+	/**
+	 * After receiving the challenge for mutual authentication from the server
+	 * process it and send back the response
+	 */
+	public boolean getChallengeFromServerAndSendResponse(){
 		// Get the encrypted text and decrypt it
 		String plainText = "";
 		String serverNonce = "";
@@ -265,32 +258,42 @@ public class Client {
 			while(socket.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			serverNonce = input.readUTF();
+			System.out.println("Server sent the nonce: \n" + serverNonce);
+			
 			// Then get the encrypted text
 			while(socket.getInputStream().available() == 0);
 			DataInputStream dis = new DataInputStream(socket.getInputStream());
 			byte[] serverMessage = new byte[socket.getInputStream().available()];
 			
+			// Decrypt the message appropriately
 			dis.readFully(serverMessage);
 			try{
 				plainText = AES.decrypt(serverMessage, SHARED_KEY, IV);
-			} catch (IllegalBlockSizeException e){
+			} catch (Exception e){
 				System.out.println("You had a different key from the server... failed to decrypt the message");
-				return;
-			} catch (BadPaddingException f){
-				System.out.println("You had a different key from the server... failed to decrypt the message");
-				return;
+				return false;
 			}
 			System.out.println("Plaintext is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
 		
+		// Check to make sure the nonce returned was correct
 		String myNonceCheck = plainText.split("~")[1];
 		SERVER_SECRET_KEY = new BigInteger(plainText.split("~")[2]);
 		if (myNonceCheck.equals(nonce.toString())){
 			System.out.println("Verified server sent back correct encrypted nonce, successfully authenticated server");
 			// If the server authenticated okay, let's let the server authenticate us by sending his nonce back with encryption
-			String messageEncryptToServer = "IAmClient~" + serverNonce + "~" + SECRET_KEY.toString();
+			String serverPhrase = plainText.split("~")[0];
+			
+			// Send a message back that's not the same as the server's
+			myPhrase = DiffieHellman.generateRandomSecretValue().toString();
+			while (myPhrase.equals(serverPhrase)){
+				myPhrase = DiffieHellman.generateRandomSecretValue().toString();
+			}
+			
+			// Send back to the server our response
+			String messageEncryptToServer = myPhrase + "~" + serverNonce + "~" + SECRET_KEY.toString();
 			System.out.println("My message to the server is: " + messageEncryptToServer);
 			byte[] encryptedMessage;
 			try {
@@ -299,13 +302,11 @@ public class Client {
 				output.write(encryptedMessage);
 			} catch (Exception e) {
 				e.printStackTrace();
-				return;
+				return false;
 			}
-			
 			genSessionKey();
 			System.out.println("The shared session key is: " + DiffieHellman.dhMod(SERVER_SECRET_KEY, b, p).toString());
-			
-			
+			return true;
 		} else {
 			// If the server is fake, get out and close the socket
 			System.out.println("That server is a fake! GET OUT!!!!!");
@@ -314,6 +315,7 @@ public class Client {
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
+			return false;
 		}
 	}
 	
@@ -338,5 +340,4 @@ public class Client {
 			e.printStackTrace();
 		}
 	}
-	
 }
