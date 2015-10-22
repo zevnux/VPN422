@@ -39,9 +39,7 @@ public class Server {
 			socket = new ServerSocket(port);
 			genSecretKey();
 			genP();
-			do{
-				genG();
-			}while(g.compareTo(p) == 1);
+			genG();
 			initSecretKey();
 		} catch (IOException e){
 			System.out.println("Failed to bind port " + port + " to socket; already in use");

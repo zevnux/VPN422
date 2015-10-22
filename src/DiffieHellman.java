@@ -16,7 +16,7 @@ public class DiffieHellman {
 	 * @return a prime BigInteger value of size 1024 bits
 	 */
 	public static BigInteger generateBigIntPrime() {
-		return new BigInteger(1024, Integer.MAX_VALUE, new Random()).abs();
+		return new BigInteger(2048, Integer.MAX_VALUE, new Random()).abs();
 	}
 	
 	/**
@@ -36,7 +36,7 @@ public class DiffieHellman {
 	}
 	
 	private static BigInteger generate1024BitNum() {
-		return new BigInteger(1024, new Random()).abs();
+		return new BigInteger(256, new Random()).abs();
 	}
 	
 	public BigInteger pow(BigInteger base, BigInteger exponent) {
