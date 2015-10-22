@@ -129,6 +129,7 @@ public class Server {
 					"~\nThe p value is: ~" + p.toString() + 
 					"~\nThe IV is: ~" + IV + "";
 			System.out.println("Sending the following values to the client: \n" + message);
+			System.out.println("Server g^nmodp key: " + SECRET_KEY.toString());
 			DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
 			dos.writeUTF(message);
 		} catch (IOException e){
@@ -233,7 +234,7 @@ public class Server {
 			// By the time we get here we have input to read (initial message)
 			DataInputStream input = new DataInputStream(channel.getInputStream());
 			String message = input.readUTF();
-			System.out.println(message);
+			System.out.println("The client sent the following message: " + message);
 			clientNonce = message.split("~")[1];
 			System.out.println("The client nonce is: " + clientNonce);
 			
@@ -241,18 +242,20 @@ public class Server {
 			// Encrypt signature + clientNonce + powmodServer with SharedSecretKey
 			myPhrase = DiffieHellman.generateRandomSecretValue().toString();
 			String messageEncryptToClient = myPhrase + "~" + clientNonce + "~" + SECRET_KEY.toString();
-			System.out.println("My message to the client is: " + messageEncryptToClient);
 			byte[] encryptedMessage;
 			encryptedMessage = AES.encrypt(messageEncryptToClient, SHARED_KEY, IV);
 			
 			//Send the nonce after as a string
 			DataOutputStream dos = new DataOutputStream(channel.getOutputStream());
 			dos.writeUTF(nonce.toString());
+			System.out.println("Sending nonce and challenge to client");
 			System.out.println("My nonce is: " + nonce);
+			System.out.println("The plaintext challenge is: " + messageEncryptToClient);
 			DataOutputStream output = new DataOutputStream(channel.getOutputStream());
 			// Make sure the previous input is read before writing to the socket again
 			while (channel.getInputStream().available() != 0);
 			output.write(encryptedMessage);
+			System.out.println("The encrypted challenge is: " + bytesToHex(encryptedMessage));
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -266,12 +269,14 @@ public class Server {
 		// Get the encrypted text and decrypt it
 		String plainText = "";
 		try{
+			System.out.println("Waiting for client's response to challenge");
 			while(channel.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(channel.getInputStream());
 			byte[] clientMessage = new byte[channel.getInputStream().available()];
 			input.readFully(clientMessage);
+			System.out.println("The client sent the following encrypted challenge response: " + bytesToHex(clientMessage));
 			plainText = AES.decrypt(clientMessage, SHARED_KEY, IV);
-			System.out.println("Plaintext is: " + plainText);
+			System.out.println("Plaintext of the challenge response is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
 		}
@@ -282,7 +287,7 @@ public class Server {
 			System.out.println("Received original message back, replay attack!");
 			return false;
 		}
-		System.out.println("Confirmed the message was not the same, continue with nonce check");
+		System.out.println("Confirmed the personal message was not the same, no replay attack; continue with nonce check");
 		
 		// Phrase was not the same, we're good to check the nonce
 		// Check the nonce
@@ -322,7 +327,7 @@ public class Server {
 	}
 	
 	/**
-	 * Compute the hash of the hash of the shared secrety key, we'll use this as the
+	 * Compute the hash of the hash of the shared secret key, we'll use this as the
 	 * integrity key since it's already a known shared value
 	 */
 	private void computeIntegrityKey(){

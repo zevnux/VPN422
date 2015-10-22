@@ -97,6 +97,7 @@ public class Execute {
 		System.out.println("The server is listening on the address " + s.getIp() + ":" + s.getPort());
 		System.out.println("Waiting for client...");
 		s.waitForClient();
+		System.out.println("Client attempting secure connection");
 		s.sendDiffieHellmanValues();
 		s.listenThenSendChallenge();
 		connected = s.listenForResponseFromClient();

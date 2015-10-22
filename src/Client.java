@@ -83,10 +83,11 @@ public class Client {
 	 */
 	public void getDiffieHellmanValues(){
 		try{
+			System.out.println("Waiting for server to send p, g, and IV");
 			while (socket.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			String serverMessage = input.readUTF();
-			System.out.println(serverMessage);
+			System.out.println("Received the following values from server: \n" + serverMessage);
 			scrapeGValue(serverMessage);
 			scrapePValue(serverMessage);
 			scrapeIV(serverMessage);
@@ -119,7 +120,7 @@ public class Client {
 	private void createSecretKey() {
 		genSecretValue(); //little b
 		initSecretKey();
-		System.out.println("Client Secret key: ~" + SECRET_KEY.toString() + "~");
+		System.out.println("Client g^nmodp value: ~" + SECRET_KEY.toString() + "~");
 	}
 	
 	private void scrapeGValue(String readUTF) throws Exception {
@@ -231,8 +232,9 @@ public class Client {
 		try {
 			dos = new DataOutputStream(socket.getOutputStream());
 			dos.writeUTF(greeting + "~" + nonce.toString());
+			System.out.println("Sending the following message to server: " + greeting + "~" + nonce.toString());
 			System.out.println("My nonce is: " + nonce.toString());
-			System.out.println("Waiting for server's response...");
+			System.out.println("Waiting for server's challenge...");
 		} catch (IOException e) {
 			e.printStackTrace();
 		}
@@ -257,7 +259,7 @@ public class Client {
 			while(socket.getInputStream().available() == 0);
 			DataInputStream input = new DataInputStream(socket.getInputStream());
 			serverNonce = input.readUTF();
-			System.out.println("Server sent the nonce: \n" + serverNonce);
+			System.out.println("Server sent the nonce: " + serverNonce);
 			
 			// Then get the encrypted text
 			while(socket.getInputStream().available() == 0);
@@ -266,13 +268,14 @@ public class Client {
 			
 			// Decrypt the message appropriately
 			dis.readFully(serverMessage);
+			System.out.println("The server sent the following encrypted challenge: " + bytesToHex(serverMessage));
 			try{
 				plainText = AES.decrypt(serverMessage, SHARED_KEY, IV);
 			} catch (Exception e){
 				System.out.println("You had a different key from the server... failed to decrypt the message");
 				return false;
 			}
-			System.out.println("Plaintext is: " + plainText);
+			System.out.println("Plaintext of the challenge is: " + plainText);
 		} catch (Exception e){
 			e.printStackTrace();
 		} 
@@ -292,19 +295,22 @@ public class Client {
 			}
 			
 			// Send back to the server our response
+			System.out.println("Replying the server's challenge...");
 			String messageEncryptToServer = myPhrase + "~" + serverNonce + "~" + SECRET_KEY.toString();
-			System.out.println("My message to the server is: " + messageEncryptToServer);
+			System.out.println("The plaintext challenge response to server is: " + messageEncryptToServer);
 			byte[] encryptedMessage;
 			try {
 				encryptedMessage = AES.encrypt(messageEncryptToServer, SHARED_KEY, IV);
 				DataOutputStream output = new DataOutputStream(socket.getOutputStream());
 				output.write(encryptedMessage);
+				System.out.println("The encrypted challenge response to server is: " + bytesToHex(encryptedMessage));
 			} catch (Exception e) {
 				e.printStackTrace();
 				return false;
 			}
 			genSessionKey();
 			System.out.println("The shared session key is: " + DiffieHellman.dhMod(SERVER_SECRET_KEY, b, p).toString());
+			System.out.println("Waiting for server to authenticate me...");
 			return true;
 		} else {
 			// If the server is fake, get out and close the socket
