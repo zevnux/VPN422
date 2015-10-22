@@ -8,11 +8,15 @@ import java.net.InetAddress;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.net.UnknownHostException;
+import java.security.KeyPair;
+import java.security.KeyPairGenerator;
 import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Arrays;
 import java.util.Scanner;
 
 import javax.crypto.Mac;
+import javax.crypto.spec.DHParameterSpec;
 import javax.crypto.spec.SecretKeySpec;
 
 public class Server {
@@ -38,10 +42,25 @@ public class Server {
 		try{
 			socket = new ServerSocket(port);
 			genSecretKey();
-			genP();
-			do{
-				genG();
-			}while(g.compareTo(p) >= 0);
+			// Used to use this but might not generate proper values
+//			genP();
+//			do{
+//				genG();
+//			}while(g.compareTo(p) >= 0);
+			
+			// Use library to generate keys
+			KeyPairGenerator diffieHellmanPublicKeys;
+			try {
+				diffieHellmanPublicKeys = KeyPairGenerator.getInstance("DiffieHellman");
+				diffieHellmanPublicKeys.initialize(1024);
+				KeyPair pAndg = diffieHellmanPublicKeys.generateKeyPair();
+				DHParameterSpec params = ((javax.crypto.interfaces.DHPublicKey) pAndg.getPublic()).getParams();
+				g = params.getG();
+				p = params.getP();
+			
+			} catch (NoSuchAlgorithmException e) {
+				e.printStackTrace();
+			}
 			initSecretKey();
 		} catch (IOException e){
 			System.out.println("Failed to bind port " + port + " to socket; already in use");
